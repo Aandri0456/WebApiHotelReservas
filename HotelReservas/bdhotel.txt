@@ -1,0 +1,261 @@
+use master
+go
+if exists(select * from sysdatabases  where name = 'bdhotel')
+DROP DATABASE bdhotel
+GO
+
+create database bdhotel
+go
+
+use bdhotel
+
+------------------------TABLA TIPO------------------------------
+create table TB_TIPO(
+	CODIGO_TIPO int identity(1,1) primary key,
+	DESCRIPCION_TIPO varchar(25),
+	ESTADO_TIPO INT DEFAULT(1)
+)
+go
+
+SELECT * FROM TB_TIPO
+GO
+
+create proc sp_AgregarTipo(@descripcion varchar(25))
+as
+begin
+	insert into TB_TIPO (DESCRIPCION_TIPO,ESTADO_TIPO) values (@descripcion,DEFAULT)
+end
+go
+
+exec sp_AgregarTipo 'CLIENTE'
+exec sp_AgregarTipo 'RECEPCIONISTA'
+exec sp_AgregarTipo 'ADMINISTRADOR'
+go
+
+select*from tb_tipo
+------------------------TABLA USUARIO------------------------------
+create table TB_USUARIO(
+	CODIGO_USUARIO int identity(1,1) primary key,
+	NOMBRE_USUARIO varchar(25) unique,
+	PASSWORD_USUARIO VARBINARY(50),
+	ESTADO_USUARIO int default(1),
+	CODIGO_TIPO int references TB_TIPO
+)
+go
+
+SELECT * FROM TB_USUARIO
+GO
+
+create proc sp_AgregarUsuario(@nombre varchar(25),@password char(8),@tipo int)
+as
+begin
+	insert into TB_USUARIO (NOMBRE_USUARIO,PASSWORD_USUARIO,ESTADO_USUARIO,CODIGO_TIPO) values (@nombre,cast(@password as varbinary(50)),DEFAULT,@tipo)
+end
+go
+
+exec sp_AgregarUsuario 'admivic','admin123',3
+go
+
+
+------------------------TABLA CARGO------------------------------
+create table TB_CARGO(
+CODIGO_CARGO int identity(1,1) primary key,
+DESCRIPCION varchar(50) not null)
+
+insert into TB_CARGO values('Gerente');
+insert into TB_CARGO values('Recepcionista');
+insert into TB_CARGO values('Botones');
+insert into TB_CARGO values('Limpieza');
+insert into TB_CARGO values('Seguridad');
+
+
+------------------------TABLA EMPLEADO------------------------------
+create table TB_EMPLEADO(
+	CODIGO_EMPLEADO int identity(1,1) primary key,
+	NOMBRE_EMPLEADO varchar(60) NOT NULL,
+	APELLIDO_EMPLEADO VARCHAR(90) NOT  NULL,
+	DNI INT NOT NULL UNIQUE,
+	CODIGO_CARGO int references TB_CARGO,
+	FECHANACIMIENTO DATE,
+	DIRECCION VARCHAR(100) NOT NULL,
+	TELEFONO INT NOT NULL)
+go
+
+create proc sp_AgregarEmpleado(@nombre varchar(60),@apellido varchar(90),@dni int,@cargo int,@fecha DATE,@direccion varchar(100),@telefono int)
+as
+begin
+	insert into TB_EMPLEADO (NOMBRE_EMPLEADO,APELLIDO_EMPLEADO,DNI,CODIGO_CARGO,FECHANACIMIENTO,DIRECCION,TELEFONO) values (@nombre,@apellido,@dni,@cargo,@fecha,@direccion,@telefono)
+end
+go
+exec sp_AgregarEmpleado 'Juan Samuel','Perez Garcia',74382023,3,'2010-10-10','Av. Colonial',981028371
+exec sp_AgregarEmpleado 'Veronica Sara','Gonzales Urbina',76288912,2,'1998-09-10','Av.Peru 312',916708224
+exec sp_AgregarEmpleado 'Pedro Manuel','Ramirez Santana',70912713,4,'1996-12-11','Av.Argentina 091',961020613
+exec sp_AgregarEmpleado 'Victor Andres','Sanchez Toledo',37219431,5,'1890-09-01','Av. Venezuela 7192',954673123
+
+exec sp_AgregarEmpleado 'Manuel Alberto',' Macías Ibarra',78542948,5,'1995-09-11','Av. Primavera 897',987658421
+exec sp_AgregarEmpleado 'Sandra Luz Alejandra','Casarrubias Magallanes',84597652,5,'2000-08-02','Av. Mendiola 869',987456321
+exec sp_AgregarEmpleado 'Claudia Sofia','Rodríguez Loera',12365479,5,'1998-10-11','Av. San Miguel 221',987458125
+exec sp_AgregarEmpleado 'Francisco Javier','Caballero Anguiano',96587495,5,'2005-09-10','Av. Morales Duarez 206',987685424
+exec sp_AgregarEmpleado 'Ladislao Rafael','Juárez Rodríguez',38945218,5,'2010-09-02','Av. La Pampilla 719',983245018
+exec sp_AgregarEmpleado 'Laura Elena','Rosado Pedraza',78948576,5,'1997-10-12','Av. Arenales 192',903245861
+
+go
+
+select * from TB_EMPLEADO
+
+
+select C.DESCRIPCION from TB_CARGO C INNER JOIN TB_EMPLEADO E ON C.CODIGO_CARGO = E.CODIGO_CARGO WHERE E.APELLIDO_EMPLEADO='Perez Garcia'
+go
+
+create proc sp_ActualizarEmpleado(@id int,@nombre varchar(60),@apellido varchar(90),@dni int,@cargo int,@fecha DATE,@direccion varchar(100),@telefono int)
+as
+begin
+	update TB_EMPLEADO set NOMBRE_EMPLEADO = @nombre,APELLIDO_EMPLEADO=@apellido, DNI=@dni,CODIGO_CARGO=@cargo,FECHANACIMIENTO=@fecha,DIRECCION=@direccion,TELEFONO=@telefono
+	  where CODIGO_EMPLEADO = @id
+end
+go
+
+--exec sp_ActualizarEmpleado 3,'Pedro Manuel','Ramirez Santana',70912713,4,'1996-12-11','Av.Buenos Aires 170',961877512
+
+
+go
+create proc sp_EliminarEmpleado(@id int)
+as
+begin
+delete from TB_EMPLEADO where CODIGO_EMPLEADO=@id
+end
+go
+
+--exec sp_EliminarEmpleado 3
+go
+create proc sp_ListarEmpleado
+as
+begin
+select * from TB_EMPLEADO 
+end
+go
+
+exec sp_ListarEmpleado 
+go
+
+ALTER proc sp_listarEmpleadoxDNI(@dni int)
+as
+begin
+select  e.NOMBRE_EMPLEADO as NOMBRE_EMPLEADO,e.APELLIDO_EMPLEADO as APELLIDO_EMPLEADO,e.DNI as DNI,c.DESCRIPCION[DESCRIPCION] ,e.FECHANACIMIENTO[FECHANACIMIENTO],e.DIRECCION[DIRECCION],e.TELEFONO[TELEFONO] from  TB_EMPLEADO E INNER JOIN TB_CARGO C
+on E.CODIGO_CARGO=c.CODIGO_CARGO where DNI like  RTRIM(@dni)+'%'
+end
+go
+
+exec sp_listarEmpleadoxDNI 3
+
+go
+CREATE table TB_HABITACION(
+CODIGO_HABITACION INT IDENTITY(1,1) PRIMARY KEY,
+DESCRIPCION VARCHAR(50) NOT NULL
+)
+go
+
+create proc sp_AgregarHabitacion(@descipcion varchar(60))
+as
+begin
+	insert into TB_HABITACION(DESCRIPCION) values (@descipcion)
+end
+go
+exec sp_AgregarHabitacion 'Muy alto'
+exec sp_AgregarHabitacion 'Muy bajo'
+exec sp_AgregarHabitacion 'Vez mucho anime'
+exec sp_AgregarHabitacion 'Boku no Piko'
+exec sp_AgregarHabitacion 'Sao'
+exec sp_AgregarHabitacion 'Boku no Hero'
+exec sp_AgregarHabitacion 'Shaman King'
+exec sp_AgregarHabitacion 'Tokyo Ghoul'
+exec sp_AgregarHabitacion 'Fairy Tail'
+exec sp_AgregarHabitacion 'Naruto'
+go
+
+--ACTUALIZAR 
+
+create proc sp_ActualizarHabitacion(@id int,@descipcion varchar(60))
+as
+begin
+	update TB_HABITACION set DESCRIPCION = @descipcion where CODIGO_HABITACION = @id
+end
+go
+
+--ELIMINAR 
+
+go
+create proc sp_EliminarHabitacion(@id int)
+as
+begin
+delete from TB_HABITACION where CODIGO_HABITACION=@id
+end
+go
+
+----
+
+Select * from TB_HABITACION
+
+go
+CREATE TABLE TB_RESERVA(
+CODIGO_RESERVA INT IDENTITY(1,1) PRIMARY KEY,
+CODIGO_HABITACION INT REFERENCES TB_HABITACION,
+CODIGO_USUARIO INT REFERENCES TB_USUARIO,
+FECHAINICIO DATE NOT NULL,
+FECHASALIDA DATE NOT NULL,
+ESTADO_RESERVA INT DEFAULT(1)
+)
+
+CREATE TABLE TB_DETALLE_HABITACION(
+CODIGO_DETALLE INT IDENTITY(1,1) PRIMARY KEY,
+CODIGO_HABITACION INT REFERENCES TB_HABITACION,
+DESCRIPCION VARCHAR(50) NOT NULL, 
+HUESPEDES INT NOT NULL,
+TAMAÑO INT NOT NULL,
+PRECIO MONEY NOT NULL,
+ESTADO_HABITACION  INT DEFAULT(1)
+)
+go
+create proc sp_AgregarDetalle(@descipcion varchar(50), @huespedes int , @tamaño int, @precio money, @estado_habitacion int)
+as
+begin
+	insert into TB_DETALLE_HABITACION(DESCRIPCION, HUESPEDES, TAMAÑO, PRECIO, ESTADO_HABITACION) values (@descipcion , @huespedes, @tamaño, @precio, @estado_habitacion)
+end
+go
+exec sp_AgregarDetalle 'Muy alto',4,10,200,4
+exec sp_AgregarDetalle 'Muy bajo',5,4,100,3
+exec sp_AgregarDetalle 'Vez mucho anime',6,8,2000,4
+exec sp_AgregarDetalle 'Boku no Piko',2,2,300,6
+exec sp_AgregarDetalle 'Sao',5,5,1500,5
+exec sp_AgregarDetalle 'Boku no Hero',1,1,1000,2
+exec sp_AgregarDetalle 'Shaman King',3,7,500,1
+exec sp_AgregarDetalle 'Tokyo Ghoul',8,9,4000,1
+exec sp_AgregarDetalle 'Fairy Tail',10,4,10000,4
+exec sp_AgregarDetalle 'Naruto',1,5,600,2
+go
+
+--ACTUALIZAR
+
+create proc sp_ActualizarDetalle(@id int,@descipcion varchar(50), @huespedes int , @tamaño int, @precio money, @estado_habitacion int)
+as
+begin
+	update TB_DETALLE_HABITACION set DESCRIPCION = @descipcion, HUESPEDES=@huespedes, TAMAÑO=@tamaño,PRECIO=@precio,ESTADO_HABITACION=@estado_habitacion
+	  where CODIGO_DETALLE = @id
+end
+go
+
+
+
+--
+--ELIMINAR 
+
+go
+create proc sp_EliminarDetalle(@id int)
+as
+begin
+delete from TB_DETALLE_HABITACION where CODIGO_DETALLE=@id
+end
+go
+
+
+SELECT * FROM TB_DETALLE_HABITACION
